@@ -89,6 +89,8 @@ export async function GET(
         return handleDirections();
       case "home":
         return handleHome();
+      case "philosophy":
+        return handleSectionedSheet("Philosophy");
       default:
         return handleGenericSheet(sheetName);
     }
@@ -123,6 +125,25 @@ async function handleSettings() {
 
 async function handleHome() {
   const rows = await getSheetData("Home");
+  const data = rowsToObjects<Record<string, any>>(rows);
+  
+  // Convert to object keyed by Section
+  const sections: Record<string, any> = {};
+  data.forEach((item) => {
+    if (item.Section) {
+      sections[item.Section] = {
+        ...item,
+        Image_URL: convertDriveUrl(item.Image_URL || ""),
+      };
+    }
+  });
+  
+  return NextResponse.json(sections);
+}
+
+// Generic handler for sheets that use Section column as key
+async function handleSectionedSheet(sheetName: string) {
+  const rows = await getSheetData(sheetName);
   const data = rowsToObjects<Record<string, any>>(rows);
   
   // Convert to object keyed by Section
