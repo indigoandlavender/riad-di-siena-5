@@ -125,7 +125,7 @@ export async function sendGuestConfirmationEmail(data: BookingEmailData) {
 
   try {
     const result = await resend.emails.send({
-      from: 'Riad di Siena <bookings@riaddisiena.com>',
+      from: 'Riad di Siena <bookings@mail.riaddisiena.com>',
       to: data.email,
       subject: `Booking Confirmed - ${accommodationName} - ${data.bookingId}`,
       html,
@@ -229,7 +229,7 @@ export async function sendOwnerNotificationEmail(data: BookingEmailData) {
 
   try {
     const result = await resend.emails.send({
-      from: 'Riad di Siena Bookings <bookings@riaddisiena.com>',
+      from: 'Riad di Siena Bookings <bookings@mail.riaddisiena.com>',
       to: 'happy@riaddisiena.com',
       subject: `💰 New Booking: ${data.firstName} ${data.lastName} - €${data.total} - ${accommodationName}`,
       html,
@@ -253,4 +253,70 @@ export async function sendBookingEmails(data: BookingEmailData) {
     guest: guestResult,
     owner: ownerResult,
   };
+}
+
+// Contact form email data
+interface ContactEmailData {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+}
+
+// Email to owner for contact form submissions
+export async function sendContactEmail(data: ContactEmailData) {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: #2a2520; color: #f5f0e8; padding: 20px; text-align: center; }
+    .header h1 { margin: 0; font-size: 18px; font-weight: normal; }
+    .content { padding: 20px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e5e5e5; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #6b6b6b; width: 100px; }
+    .message { background: #faf8f5; padding: 20px; margin: 20px 0; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>✉️ NEW MESSAGE</h1>
+  </div>
+  
+  <div class="content">
+    <table>
+      <tr>
+        <th>From</th>
+        <td><strong>${data.name}</strong></td>
+      </tr>
+      <tr>
+        <th>Email</th>
+        <td><a href="mailto:${data.email}">${data.email}</a></td>
+      </tr>
+      ${data.phone ? `<tr><th>Phone</th><td>${data.phone}</td></tr>` : ''}
+    </table>
+    
+    <div class="message">${data.message}</div>
+  </div>
+</body>
+</html>
+  `;
+
+  try {
+    const result = await resend.emails.send({
+      from: 'Riad di Siena <hello@mail.riaddisiena.com>',
+      to: 'happy@riaddisiena.com',
+      replyTo: data.email,
+      subject: `Message from ${data.name}`,
+      html,
+    });
+    console.log('Contact email sent:', result);
+    return { success: true, result };
+  } catch (error) {
+    console.error('Failed to send contact email:', error);
+    return { success: false, error };
+  }
 }
