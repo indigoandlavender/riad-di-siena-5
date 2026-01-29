@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSheetData, appendToSheet, rowsToObjects } from "@/lib/sheets";
-import { sendBookingEmails } from "@/lib/email";
+import { sendBookingEmails, sendContactEmail } from "@/lib/email";
 
 export const revalidate = 0;
 
@@ -128,6 +128,20 @@ export async function POST(request: Request) {
         } catch (emailError) {
           console.error("Failed to send booking emails:", emailError);
           // Don't fail the booking if email fails
+        }
+      }
+      
+      // Send contact form email (no payment, just a message)
+      if (!paypalStatus && !checkIn && message && email) {
+        try {
+          await sendContactEmail({
+            name: `${guestFirstName} ${guestLastName}`.trim(),
+            email,
+            phone,
+            message,
+          });
+        } catch (emailError) {
+          console.error("Failed to send contact email:", emailError);
         }
       }
       
