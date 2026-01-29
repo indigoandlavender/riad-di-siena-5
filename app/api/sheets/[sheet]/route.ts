@@ -156,20 +156,18 @@ async function handleTheRiad() {
   const rows = await getSheetData("The_Riad");
   const data = rowsToObjects<Record<string, any>>(rows);
   
-  const processed = data.map((item) => ({
-    ...item,
-    Image_URL: convertDriveUrl(item.Image_URL || ""),
-  })) as Record<string, any>[];
-  
-  // Group by section
+  // Convert to object keyed by Section (like handleHome)
   const sections: Record<string, any> = {};
-  processed.forEach((item) => {
+  data.forEach((item) => {
     if (item.Section) {
-      sections[item.Section] = item;
+      sections[item.Section] = {
+        ...item,
+        Image_URL: convertDriveUrl(item.Image_URL || ""),
+      };
     }
   });
   
-  return NextResponse.json({ sections, items: processed });
+  return NextResponse.json(sections);
 }
 
 async function handleDirections() {
