@@ -275,9 +275,9 @@ export default function Footer() {
               © {new Date().getFullYear()} Riad di Siena. All rights reserved.
             </p>
             {/* Hidden directions links - Circle 1: No. 37 (Main Riad), Circle 2: No. 35 (Douaria) */}
-            <div className="flex items-center gap-2">
-              <Link href="/directions" className="w-2 h-2 rounded-full bg-sand/30 hover:bg-sand/50 transition-colors" aria-label="Directions to No. 37" />
-              <Link href="/directions?building=annex" className="w-2 h-2 rounded-full bg-sand/30 hover:bg-sand/50 transition-colors" aria-label="Directions to No. 35" />
+            <div className="flex items-center gap-2 mr-20">
+              <Link href="/directions" className="w-2.5 h-2.5 rounded-full bg-[#f5f0e8]/30 hover:bg-[#f5f0e8]/60 transition-colors" aria-label="Directions to No. 37" />
+              <Link href="/directions?building=annex" className="w-2.5 h-2.5 rounded-full bg-[#f5f0e8]/30 hover:bg-[#f5f0e8]/60 transition-colors" aria-label="Directions to No. 35" />
             </div>
           </div>
         </div>
