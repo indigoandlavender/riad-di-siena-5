@@ -87,6 +87,8 @@ export async function GET(
         return handleTheRiad();
       case "directions":
         return handleDirections();
+      case "home":
+        return handleHome();
       default:
         return handleGenericSheet(sheetName);
     }
@@ -117,6 +119,24 @@ async function handleGenericSheet(sheetName: string) {
 async function handleSettings() {
   const settings = await getAllSettings();
   return NextResponse.json(settings);
+}
+
+async function handleHome() {
+  const rows = await getSheetData("Home");
+  const data = rowsToObjects<Record<string, any>>(rows);
+  
+  // Convert to object keyed by Section
+  const sections: Record<string, any> = {};
+  data.forEach((item) => {
+    if (item.Section) {
+      sections[item.Section] = {
+        ...item,
+        Image_URL: convertDriveUrl(item.Image_URL || ""),
+      };
+    }
+  });
+  
+  return NextResponse.json(sections);
 }
 
 async function handleRooms() {
