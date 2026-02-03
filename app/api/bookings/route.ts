@@ -1,26 +1,14 @@
 import { NextResponse } from "next/server";
-import { getSheetData, appendToSheet, rowsToObjects } from "@/lib/sheets";
+import { appendToOpsSheet } from "@/lib/sheets";
 import { sendBookingEmails, sendContactEmail } from "@/lib/email";
 
 export const revalidate = 0;
-
-export async function GET() {
-  try {
-    const rows = await getSheetData("Bookings");
-    const bookings = rowsToObjects(rows);
-    return NextResponse.json(bookings);
-  } catch (error) {
-    console.error("Error fetching bookings:", error);
-    return NextResponse.json([], { status: 500 });
-  }
-}
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
     const bookingId = `RDS-${Date.now()}`;
-    const timestamp = new Date().toISOString();
 
     // Handle both old form submissions and new PayPal bookings
     const {
@@ -51,62 +39,63 @@ export async function POST(request: Request) {
       // Legacy fields
       name,
       roomPreference,
+      // New fields from BookingModal
+      itemName,
+      totalEUR,
+      units,
+      paypalTransactionId,
     } = body;
 
     const guestFirstName = firstName || name?.split(" ")[0] || "";
     const guestLastName = lastName || name?.split(" ").slice(1).join(" ") || "";
     const propertyName = property || "Riad di Siena";
-    const accommodationName = room || tent || experience || roomPreference || "";
+    const accommodationName = room || tent || experience || roomPreference || itemName || "";
+    const finalTotal = total || totalEUR || 0;
+    const finalNights = parseInt(String(nights)) || 1;
+    const finalGuests = parseInt(String(guests)) || 1;
+    
+    // Calculate checkOut if not provided but checkIn and nights are
+    let finalCheckOut = checkOut || "";
+    if (!finalCheckOut && checkIn && finalNights > 0) {
+      try {
+        const checkInDate = new Date(checkIn);
+        checkInDate.setDate(checkInDate.getDate() + finalNights);
+        finalCheckOut = checkInDate.toISOString().split("T")[0];
+      } catch (e) {
+        console.error("Failed to calculate checkOut:", e);
+      }
+    }
 
-    // Store all booking data as JSON for flexibility
-    const bookingData = JSON.stringify({
-      firstName: guestFirstName,
-      lastName: guestLastName,
-      email,
-      phone,
-      message,
-      guests,
-      total,
-      room,
-      roomId,
-      checkIn,
-      checkOut,
-      nights,
-      property: propertyName,
-      tent,
-      tentId,
-      tentLevel,
-      experience,
-      experienceId,
-      paypalOrderId,
-      paypalStatus,
-      roomPreference,
-    });
-
-    const success = await appendToSheet("Bookings", [
-      [
+    // Write directly to OPS Master_Guests (single source of truth)
+    let opsSuccess = false;
+    if (checkIn) {
+      opsSuccess = await appendToOpsSheet({
         bookingId,
-        timestamp,
-        guestFirstName,
-        guestLastName,
+        firstName: guestFirstName,
+        lastName: guestLastName,
         email,
-        phone || "",
-        checkIn || "",
-        checkOut || "",
-        guests || "",
-        total || "",
-        paypalStatus || "PENDING",
-        paypalOrderId || "",
-        accommodationName,
-        propertyName,
-        bookingData,
-      ]
-    ]);
+        phone,
+        property: propertyName,
+        room: accommodationName,
+        checkIn,
+        checkOut: finalCheckOut,
+        nights: finalNights,
+        guests: finalGuests,
+        total: parseFloat(String(finalTotal)) || 0,
+        message,
+      });
+      
+      if (!opsSuccess) {
+        console.error("Failed to write to OPS Master_Guests");
+        return NextResponse.json({ success: false, error: "Failed to save booking" }, { status: 500 });
+      }
+    }
 
-    if (success) {
+    if (opsSuccess || !checkIn) {
       // Send confirmation emails if payment was successful
-      if (paypalStatus === "COMPLETED" && email) {
+      if ((paypalStatus === "COMPLETED" || paypalTransactionId) && email) {
         try {
+          const totalNumber = parseFloat(String(finalTotal)) || 0;
           await sendBookingEmails({
             bookingId,
             firstName: guestFirstName,
@@ -114,17 +103,18 @@ export async function POST(request: Request) {
             email,
             phone,
             property: propertyName,
-            room,
+            room: accommodationName,
             tent,
             experience,
             checkIn,
-            checkOut,
-            nights: nights || 1,
-            guests: guests || 1,
-            total: total || 0,
-            paypalOrderId,
+            checkOut: finalCheckOut,
+            nights: finalNights,
+            guests: finalGuests,
+            total: totalNumber,
+            paypalOrderId: paypalOrderId || paypalTransactionId,
             message,
           });
+          console.log("Booking emails sent to guest and happy@riaddisiena.com");
         } catch (emailError) {
           console.error("Failed to send booking emails:", emailError);
           // Don't fail the booking if email fails
@@ -132,7 +122,7 @@ export async function POST(request: Request) {
       }
       
       // Send contact form email (no payment, just a message)
-      if (!paypalStatus && !checkIn && message && email) {
+      if (!paypalStatus && !paypalTransactionId && !checkIn && message && email) {
         try {
           await sendContactEmail({
             name: `${guestFirstName} ${guestLastName}`.trim(),
