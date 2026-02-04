@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import BookingModal from "@/components/BookingModal";
 import { useCurrency } from "@/components/CurrencyContext";
+import ElfsightWidget, { ElfsightScript } from "@/components/ElfsightWidget";
 import {
   IconBed,
   IconShower,
@@ -223,6 +224,14 @@ export default function RoomsPage() {
                       BOOK THIS ROOM
                     </button>
                   )}
+
+                  {/* Room Reviews */}
+                  {room.Widget_ID && (
+                    <div className="mt-12 pt-8 border-t border-[#2a2520]/10">
+                      <p className="text-xs tracking-widest text-[#2a2520]/40 mb-6">GUEST REVIEWS</p>
+                      <ElfsightWidget widgetId={room.Widget_ID} />
+                    </div>
+                  )}
                 </div>
               </article>
             ))}
@@ -254,6 +263,9 @@ export default function RoomsPage() {
         formatPrice={formatPrice}
         paypalClientId="AWVf28iPmlVmaEyibiwkOtdXAl5UPqL9i8ee9yStaG6qb7hCwNRB2G95SYwbcikLnBox6CGyO-boyAvu"
       />
+
+      {/* Elfsight Script - loads once for all widgets */}
+      <ElfsightScript />
     </div>
   );
 }
