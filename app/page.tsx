@@ -45,7 +45,10 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/sheets/home")
       .then((res) => res.json())
-      .then((data) => setSections(data || {}))
+      .then((data) => {
+        console.log("Home API data:", data);
+        setSections(data || {});
+      })
       .catch((err) => console.error("Home API error:", err));
 
     fetch("/api/sheets/testimonials")
@@ -69,19 +72,20 @@ export default function Home() {
     <main className="min-h-screen">
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center pt-16">
-        {hero?.Image_URL ? (
-          <Image
+        {/* Fallback background - always present as base layer */}
+        <div className="absolute inset-0 bg-[hsl(var(--sand))]" />
+        {/* Image - renders on top when available */}
+        {hero?.Image_URL && (
+          <img
             src={hero.Image_URL}
             alt={hero?.Title || "Riad di Siena"}
-            fill
-            className="object-cover"
-            priority
+            className="absolute inset-0 w-full h-full object-cover z-[1]"
           />
-        ) : (
-          <div className="absolute inset-0 bg-[hsl(var(--sand))]" />
         )}
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 text-center text-white px-6 max-w-4xl">
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/30 z-[2]" />
+        {/* Content */}
+        <div className="relative z-[3] text-center text-white px-6 max-w-4xl">
           <h1 className="font-display text-4xl md:text-6xl lg:text-7xl mb-6">
             {hero?.Title || "Riad di Siena"}
           </h1>
